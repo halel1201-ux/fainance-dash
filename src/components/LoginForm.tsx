@@ -4,6 +4,21 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
+function translateAuthError(code?: string, message?: string): string {
+  switch (code) {
+    case "invalid_credentials":
+      return "אימייל או סיסמה שגויים";
+    case "email_not_confirmed":
+      return "המייל לא אומת — אשר אותו במייל שנשלח, או דרך הדאשבורד";
+    case "user_not_found":
+      return "משתמש לא קיים";
+    case "over_request_rate_limit":
+      return "יותר מדי ניסיונות — נסה שוב בעוד רגע";
+    default:
+      return message ? `שגיאת התחברות: ${message}` : "שגיאת התחברות";
+  }
+}
+
 export default function LoginForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -22,7 +37,7 @@ export default function LoginForm() {
     });
     setLoading(false);
     if (error) {
-      setError("אימייל או סיסמה שגויים");
+      setError(translateAuthError(error.code, error.message));
       return;
     }
     router.push("/dashboard");
@@ -59,7 +74,11 @@ export default function LoginForm() {
           {error}
         </p>
       )}
-      <button type="submit" disabled={loading} className="fh-btn-gold w-full !py-3 disabled:opacity-60">
+      <button
+        type="submit"
+        disabled={loading}
+        className="fh-btn-gold w-full !py-3 disabled:opacity-60"
+      >
         {loading ? "מתחבר…" : "כניסה למערכת ←"}
       </button>
     </form>
