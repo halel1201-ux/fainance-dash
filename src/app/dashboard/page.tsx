@@ -1,98 +1,63 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
 import Logo from "@/components/Logo";
-import { computeDti, statusBadgeClass, type DtiInput } from "@/lib/dti";
+import LogoutButton from "@/components/LogoutButton";
+import { getProfile } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+import { statusFromPti, statusLabelOf, statusBadgeClass } from "@/lib/dti";
 
-// --- sample data (until Supabase is wired) — exercises the real DTI engine ---
-type Row = { name: string; input: DtiInput; pulledBy?: string };
+const ROLE_LABEL: Record<string, string> = {
+  admin: "אדמין",
+  broker: "מתווך",
+  banker: "בנקאי",
+  nonbank: "חוץ-בנקאי",
+};
 
-const SAMPLE: Row[] = [
-  {
-    name: "אבי מזרחי",
-    pulledBy: "בנק לאומי",
-    input: {
-      netIncome: 24000,
-      existingMonthlyRepayments: 2000,
-      assetType: "property",
-      propertyKind: "first_home",
-      propertyValue: 1850000,
-      remainingMortgage: 620000,
-      newLoanAmount: 400000,
-      newLoanMonthlyPayment: 4500,
-    },
-  },
-  {
-    name: "מרים דהן",
-    input: {
-      netIncome: 15000,
-      existingMonthlyRepayments: 0,
-      assetType: "none",
-      newLoanMonthlyPayment: 5100,
-    },
-  },
-  {
-    name: "עומר שלו",
-    pulledBy: "מימון ישיר",
-    input: {
-      netIncome: 18000,
-      existingMonthlyRepayments: 1200,
-      assetType: "car",
-      newLoanMonthlyPayment: 5600,
-    },
-  },
-  {
-    name: "נועה גל",
-    input: {
-      netIncome: 12000,
-      existingMonthlyRepayments: 1500,
-      assetType: "none",
-      newLoanMonthlyPayment: 2000,
-    },
-  },
-  {
-    name: "רון כץ",
-    input: {
-      netIncome: 28000,
-      existingMonthlyRepayments: 0,
-      assetType: "property",
-      propertyKind: "investment",
-      propertyValue: 2100000,
-      remainingMortgage: 0,
-      newLoanAmount: 850000,
-      newLoanMonthlyPayment: 4980,
-    },
-  },
-];
+type ClientRow = {
+  id: string;
+  full_name: string;
+  net_income: number;
+  monthly_repay: number;
+  has_rent: boolean;
+  rent_amount: number;
+};
 
-const NAV = [
-  { icon: "🗂️", label: "הלקוחות שלי", active: true },
-  { icon: "➕", label: "לקוח חדש" },
-  { icon: "🏦", label: "הצעות שהתקבלו" },
-  { icon: "📊", label: "דוחות" },
-];
+export default async function DashboardPage() {
+  const profile = await getProfile();
+  if (!profile) redirect("/");
 
-export default function DashboardPage() {
-  const rows = SAMPLE.map((r) => ({ ...r, dti: computeDti(r.input) }));
-  const hot = rows.filter((r) => r.dti.status === "hot").length;
+  const supabase = await createClient();
+  // RLS scopes this automatically: broker→own, banker→their brokers', etc.
+  const { data: clients } = await supabase
+    .from("clients")
+    .select("id, full_name, net_income, monthly_repay, has_rent, rent_amount")
+    .order("created_at", { ascending: false });
+
+  const rows = (clients ?? []) as ClientRow[];
+  const withDti = rows.map((c) => {
+    const load = c.monthly_repay + (c.has_rent ? c.rent_amount : 0);
+    const pti = c.net_income > 0 ? load / c.net_income : Infinity;
+    const status = statusFromPti(pti);
+    return { ...c, ptiPct: Math.round(pti * 100), status };
+  });
+  const hot = withDti.filter((r) => r.status === "hot").length;
 
   return (
     <div className="min-h-screen flex">
       {/* sidebar */}
       <aside className="w-60 shrink-0 p-4 flex flex-col border-l border-[color:var(--color-line)] bg-[linear-gradient(180deg,#0b1830,#0a1424)]">
         <Logo size="sm" className="mb-6" />
-        {NAV.map((n) => (
-          <div
-            key={n.label}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm mb-1 ${
-              n.active
-                ? "fh-badge-gold !rounded-lg font-bold"
-                : "text-muted"
-            }`}
-          >
-            <span className="w-4 text-center">{n.icon}</span>
-            {n.label}
-          </div>
-        ))}
-        <div className="mt-auto">
-          <span className="fh-badge fh-badge-good">דנה לוי · מתווך</span>
+        <NavItem icon="🗂️" label="הלקוחות שלי" active />
+        <Link href="/dashboard/clients/new">
+          <NavItem icon="➕" label="לקוח חדש" />
+        </Link>
+        <NavItem icon="🏦" label="הצעות שהתקבלו" />
+        <NavItem icon="📊" label="דוחות" />
+        <div className="mt-auto space-y-2">
+          <span className="fh-badge fh-badge-good block w-fit">
+            {profile.full_name} · {ROLE_LABEL[profile.role]}
+          </span>
+          <LogoutButton />
         </div>
       </aside>
 
@@ -102,64 +67,88 @@ export default function DashboardPage() {
           <div>
             <h1 className="text-2xl font-bold">הלקוחות שלי</h1>
             <p className="text-muted text-sm mt-1">
-              {rows.length} לקוחות · {hot} לוהטים 🔥 · יחס החזר לפי כללי בנק ישראל
+              {rows.length} לקוחות · {hot} לוהטים 🔥 · יחס החזר בסיסי (PTI)
             </p>
           </div>
-          <button className="fh-btn-gold">+ לקוח חדש</button>
+          <Link href="/dashboard/clients/new" className="fh-btn-gold">
+            + לקוח חדש
+          </Link>
         </header>
 
-        <div className="fh-card overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-gold text-xs uppercase tracking-wide">
-                <th className="text-right font-bold px-4 py-3 border-b border-[color:var(--color-line)]">לקוח</th>
-                <th className="text-right font-bold px-4 py-3 border-b border-[color:var(--color-line)]">בטוחה</th>
-                <th className="text-right font-bold px-4 py-3 border-b border-[color:var(--color-line)]">יחס החזר (PTI)</th>
-                <th className="text-right font-bold px-4 py-3 border-b border-[color:var(--color-line)]">LTV</th>
-                <th className="text-right font-bold px-4 py-3 border-b border-[color:var(--color-line)]">סטטוס</th>
-                <th className="text-right font-bold px-4 py-3 border-b border-[color:var(--color-line)]">נמשך ע&quot;י</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.name} className="border-b border-white/5">
-                  <td className="px-4 py-3 font-medium">{r.name}</td>
-                  <td className="px-4 py-3">
-                    {r.input.assetType === "property" ? (
-                      <span className="fh-badge fh-badge-gold">נכס</span>
-                    ) : r.input.assetType === "car" ? (
-                      <span className="fh-badge fh-badge-gold">רכב</span>
-                    ) : (
-                      <span className="text-muted">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">{r.dti.ptiPct}%</td>
-                  <td className="px-4 py-3">
-                    {r.dti.ltvPct != null ? `${r.dti.ltvPct}%` : "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`fh-badge ${statusBadgeClass(r.dti.status)}`}>
-                      {r.dti.statusLabel}
-                    </span>
-                    {r.dti.cta && (
-                      <span className="block text-[11px] text-muted mt-1">
-                        {r.dti.cta}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-muted">{r.pulledBy ?? "—"}</td>
+        {rows.length === 0 ? (
+          <div className="fh-card p-10 text-center">
+            <p className="text-muted">
+              אין עדיין לקוחות במאגר שלך.{" "}
+              <Link href="/dashboard/clients/new" className="text-gold-light underline">
+                הוסף לקוח ראשון ←
+              </Link>
+            </p>
+          </div>
+        ) : (
+          <div className="fh-card overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-gold text-xs uppercase tracking-wide">
+                  <Th>לקוח</Th>
+                  <Th>הכנסה נטו</Th>
+                  <Th>החזר חודשי</Th>
+                  <Th>יחס החזר (PTI)</Th>
+                  <Th>סטטוס</Th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {withDti.map((r) => (
+                  <tr key={r.id} className="border-b border-white/5">
+                    <td className="px-4 py-3 font-medium">{r.full_name}</td>
+                    <td className="px-4 py-3">₪{r.net_income.toLocaleString("he-IL")}</td>
+                    <td className="px-4 py-3">₪{r.monthly_repay.toLocaleString("he-IL")}</td>
+                    <td className="px-4 py-3">{isFinite(r.ptiPct) ? `${r.ptiPct}%` : "—"}</td>
+                    <td className="px-4 py-3">
+                      <span className={`fh-badge ${statusBadgeClass(r.status)}`}>
+                        {statusLabelOf(r.status)}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         <p className="text-muted text-xs mt-4">
-          * הסטטוסים מחושבים חיים על-ידי מנוע ה-DTI ב-
-          <code className="text-gold-light">src/lib/dti.ts</code> (PTI + LTV + חוק
-          עוקף). חיבור ל-Supabase ולנתונים אמיתיים — השלב הבא.
+          * יחס החזר בסיסי ברמת הלקוח. הדירוג המלא (PTI + LTV + חוק עוקף) מחושב
+          ברמת העסקה בכרטיס הלקוח — בפיתוח.
         </p>
       </main>
     </div>
+  );
+}
+
+function NavItem({
+  icon,
+  label,
+  active,
+}: {
+  icon: string;
+  label: string;
+  active?: boolean;
+}) {
+  return (
+    <div
+      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm mb-1 ${
+        active ? "fh-badge-gold !rounded-lg font-bold" : "text-muted"
+      }`}
+    >
+      <span className="w-4 text-center">{icon}</span>
+      {label}
+    </div>
+  );
+}
+
+function Th({ children }: { children: React.ReactNode }) {
+  return (
+    <th className="text-right font-bold px-4 py-3 border-b border-[color:var(--color-line)]">
+      {children}
+    </th>
   );
 }

@@ -1,7 +1,12 @@
-import Link from "next/link";
+import { redirect } from "next/navigation";
 import Logo from "@/components/Logo";
+import LoginForm from "@/components/LoginForm";
+import { getProfile } from "@/lib/auth";
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const profile = await getProfile();
+  if (profile) redirect("/dashboard");
+
   return (
     <main className="min-h-screen grid lg:grid-cols-2">
       {/* form side */}
@@ -13,34 +18,11 @@ export default function LoginPage() {
         </p>
         <h1 className="text-3xl font-black mb-8">התחברות למערכת</h1>
 
-        <form className="max-w-sm w-full space-y-4">
-          <div>
-            <label className="fh-label">דוא&quot;ל</label>
-            <input
-              type="email"
-              className="fh-input"
-              placeholder="name@bank.co.il"
-              dir="ltr"
-            />
-          </div>
-          <div>
-            <label className="fh-label">סיסמה</label>
-            <input type="password" className="fh-input" placeholder="••••••••" />
-          </div>
-          <button type="button" className="fh-btn-gold w-full !py-3">
-            כניסה למערכת ←
-          </button>
-        </form>
+        <LoginForm />
 
         <p className="text-muted text-xs mt-5 max-w-sm">
           הגישה לפי תפקיד שהוגדר על-ידי האדמין. שכחת סיסמה? פנה למנהל המערכת.
         </p>
-
-        <div className="mt-8">
-          <Link href="/dashboard" className="text-gold-light text-sm underline">
-            צפייה בהדמיית דשבורד מתווך ←
-          </Link>
-        </div>
       </section>
 
       {/* brand side */}

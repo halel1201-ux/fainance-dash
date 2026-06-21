@@ -209,6 +209,22 @@ function propertyKindLabel(k: PropertyKind): string {
       : "דירה להשקעה";
 }
 
+/**
+ * דירוג מהיר לפי PTI בלבד (ללא חוק עוקף / LTV) — לשימוש ברשימות ברמת הלקוח,
+ * לפני שיש עסקה עם בטוחה. הדירוג המלא מחושב ב-computeDti ברמת העסקה.
+ */
+export function statusFromPti(ptiFraction: number): DtiStatus {
+  if (!isFinite(ptiFraction)) return "not_possible";
+  if (ptiFraction <= PTI_BANDS.hot) return "hot";
+  if (ptiFraction <= PTI_BANDS.good) return "good";
+  if (ptiFraction <= PTI_BANDS.borderline) return "borderline";
+  return "not_possible";
+}
+
+export function statusLabelOf(status: DtiStatus): string {
+  return STATUS_LABEL[status];
+}
+
 /** מיפוי סטטוס ל-class של תג העיצוב (fh-badge-*). */
 export function statusBadgeClass(status: DtiStatus): string {
   switch (status) {
