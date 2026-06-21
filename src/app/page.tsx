@@ -1,11 +1,28 @@
 import { redirect } from "next/navigation";
 import Logo from "@/components/Logo";
 import LoginForm from "@/components/LoginForm";
-import { getProfile } from "@/lib/auth";
+import LogoutButton from "@/components/LogoutButton";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function LoginPage() {
-  const profile = await getProfile();
-  if (profile) redirect("/dashboard");
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Logged in WITH a profile → go to dashboard.
+  // Logged in WITHOUT a profile → show a clear "pending setup" screen
+  // (instead of silently bouncing back to login).
+  let pendingSetup = false;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (profile) redirect("/dashboard");
+    pendingSetup = true;
+  }
 
   return (
     <main className="min-h-screen grid lg:grid-cols-2">
@@ -13,16 +30,28 @@ export default async function LoginPage() {
       <section className="flex flex-col justify-center px-8 sm:px-16 py-12">
         <Logo size="lg" className="mb-10" />
 
-        <p className="text-gold text-sm font-bold tracking-[0.3em] mb-2">
-          ברוך שובך
-        </p>
-        <h1 className="text-3xl font-black mb-8">התחברות למערכת</h1>
-
-        <LoginForm />
-
-        <p className="text-muted text-xs mt-5 max-w-sm">
-          הגישה לפי תפקיד שהוגדר על-ידי האדמין. שכחת סיסמה? פנה למנהל המערכת.
-        </p>
+        {pendingSetup ? (
+          <div className="max-w-sm">
+            <span className="fh-badge fh-badge-warn mb-4">החשבון ממתין להגדרה</span>
+            <h1 className="text-2xl font-black mb-3">כמעט שם 👋</h1>
+            <p className="text-muted text-sm leading-relaxed mb-5">
+              ההתחברות הצליחה ({user!.email}), אבל עדיין לא הוגדר לך תפקיד במערכת.
+              מנהל המערכת צריך לשייך את החשבון שלך (אדמין / מתווך / בנקאי).
+            </p>
+            <LogoutButton />
+          </div>
+        ) : (
+          <>
+            <p className="text-gold text-sm font-bold tracking-[0.3em] mb-2">
+              ברוך שובך
+            </p>
+            <h1 className="text-3xl font-black mb-8">התחברות למערכת</h1>
+            <LoginForm />
+            <p className="text-muted text-xs mt-5 max-w-sm">
+              הגישה לפי תפקיד שהוגדר על-ידי האדמין. שכחת סיסמה? פנה למנהל המערכת.
+            </p>
+          </>
+        )}
       </section>
 
       {/* brand side */}
