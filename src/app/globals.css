@@ -1,0 +1,171 @@
+@import "tailwindcss";
+
+/* ===================================================================
+   פתרונות פיננסיים לישראל — Design System
+   Luxury dark · Navy & Gold · RTL Hebrew
+   =================================================================== */
+
+@theme {
+  --color-navy-900: #0a1626;
+  --color-navy-800: #0e1f38;
+  --color-navy-700: #142a4a;
+  --color-navy-600: #1b3a5c;
+  --color-panel: #13243f;
+  --color-panel-2: #172c4d;
+
+  --color-gold: #c8a45c;
+  --color-gold-light: #e7cf95;
+  --color-cream: #f6f1e7;
+
+  --color-ink: #eaf0fa;
+  --color-muted: #9bb0cf;
+  --color-line: rgba(200, 164, 92, 0.22);
+
+  --color-hot: #e8624a;
+  --color-good: #3fae7a;
+  --color-warn: #e0a93f;
+  --color-bad: #c0392b;
+
+  --font-sans: var(--font-heebo), -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-playfair), var(--font-heebo), serif;
+}
+
+:root {
+  --gold-soft: rgba(200, 164, 92, 0.14);
+}
+
+html,
+body {
+  background:
+    radial-gradient(1100px 480px at 85% -8%, rgba(200, 164, 92, 0.08), transparent 60%),
+    linear-gradient(160deg, #0a1626, #0e1f38 55%, #0c1d34);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background: rgba(200, 164, 92, 0.3);
+  color: #fff;
+}
+
+/* thin gold scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(200, 164, 92, 0.35) transparent;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+}
+
+/* ---------- reusable component utilities ---------- */
+@layer components {
+  .fh-card {
+    background: linear-gradient(160deg, var(--color-panel), var(--color-panel-2));
+    border: 1px solid var(--color-line);
+    border-radius: 14px;
+  }
+
+  .fh-input {
+    width: 100%;
+    background: #0c1c34;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 0.55rem 0.75rem;
+    color: var(--color-ink);
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .fh-input::placeholder {
+    color: var(--color-muted);
+  }
+  .fh-input:focus {
+    border-color: var(--color-gold);
+    box-shadow: 0 0 0 3px rgba(200, 164, 92, 0.15);
+  }
+
+  .fh-label {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--color-gold);
+    margin-bottom: 0.35rem;
+    letter-spacing: 0.2px;
+  }
+
+  .fh-btn-gold {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.6rem 1.1rem;
+    border-radius: 9px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--color-navy-900);
+    background: linear-gradient(145deg, var(--color-gold), #a8853c);
+    box-shadow: 0 8px 22px rgba(200, 164, 92, 0.25);
+    transition: transform 0.12s, box-shadow 0.12s, filter 0.12s;
+    cursor: pointer;
+  }
+  .fh-btn-gold:hover {
+    filter: brightness(1.06);
+    box-shadow: 0 10px 28px rgba(200, 164, 92, 0.35);
+  }
+  .fh-btn-gold:active {
+    transform: translateY(1px);
+  }
+
+  .fh-btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.6rem 1.1rem;
+    border-radius: 9px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--color-gold-light);
+    border: 1px solid var(--color-line);
+    background: var(--gold-soft);
+    transition: background 0.12s;
+    cursor: pointer;
+  }
+  .fh-btn-ghost:hover {
+    background: rgba(200, 164, 92, 0.2);
+  }
+
+  .fh-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+  .fh-badge-hot {
+    background: rgba(232, 98, 74, 0.16);
+    color: #ff8b76;
+  }
+  .fh-badge-good {
+    background: rgba(63, 174, 122, 0.16);
+    color: #62d39b;
+  }
+  .fh-badge-warn {
+    background: rgba(224, 169, 63, 0.16);
+    color: #f0c365;
+  }
+  .fh-badge-bad {
+    background: rgba(192, 57, 43, 0.18);
+    color: #ec7468;
+  }
+  .fh-badge-gold {
+    background: var(--gold-soft);
+    color: var(--color-gold-light);
+    border: 1px solid var(--color-line);
+  }
+}
