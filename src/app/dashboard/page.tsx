@@ -25,6 +25,7 @@ type ClientRow = {
 export default async function DashboardPage() {
   const profile = await getProfile();
   if (!profile) redirect("/");
+  if (profile.role === "admin") redirect("/dashboard/admin");
 
   const supabase = await createClient();
   // RLS scopes this automatically: broker→own, banker→their brokers', etc.
