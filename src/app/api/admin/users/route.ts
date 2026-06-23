@@ -69,3 +69,40 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ ok: true, id: created.user.id });
 }
+
+export async function DELETE(req: Request) {
+  const profile = await getProfile();
+  if (!profile || profile.role !== "admin") {
+    return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
+  }
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return NextResponse.json(
+      { error: "מפתח השרת (SUPABASE_SERVICE_ROLE_KEY) לא מוגדר בסביבה. הוסף אותו ב-Vercel ועשה Redeploy." },
+      { status: 500 }
+    );
+  }
+
+  const id = new URL(req.url).searchParams.get("id");
+  if (!id) {
+    return NextResponse.json({ error: "חסר מזהה משתמש" }, { status: 400 });
+  }
+  if (id === profile.id) {
+    return NextResponse.json({ error: "אי אפשר למחוק את עצמך" }, { status: 400 });
+  }
+
+  const admin = createAdminClient();
+  // deleting the auth user cascades to the profile (profiles.id → auth.users on delete cascade)
+  const { error } = await admin.auth.admin.deleteUser(id);
+  if (error) {
+    const dependents = /foreign key|violat/i.test(error.message);
+    return NextResponse.json(
+      {
+        error: dependents
+          ? "לא ניתן למחוק — למשתמש משויכים לקוחות / הצעות. העבר אותם למשתמש אחר תחילה."
+          : error.message,
+      },
+      { status: 400 }
+    );
+  }
+  return NextResponse.json({ ok: true });
+}

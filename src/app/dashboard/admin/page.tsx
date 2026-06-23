@@ -4,6 +4,7 @@ import LogoutButton from "@/components/LogoutButton";
 import AddUserForm from "@/components/AddUserForm";
 import AddBankForm from "@/components/AddBankForm";
 import AssignClient from "@/components/AssignClient";
+import DeleteUser from "@/components/DeleteUser";
 import { getProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -87,7 +88,7 @@ export default async function AdminPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-gold text-xs uppercase tracking-wide">
-                  <Th>שם</Th><Th>תפקיד</Th><Th>שיוך</Th><Th>סטטוס</Th>
+                  <Th>שם</Th><Th>תפקיד</Th><Th>שיוך</Th><Th>סטטוס</Th><Th>פעולות</Th>
                 </tr>
               </thead>
               <tbody>
@@ -100,6 +101,13 @@ export default async function AdminPage() {
                       <span className={`fh-badge ${u.is_active ? "fh-badge-good" : "fh-badge-warn"}`}>
                         {u.is_active ? "פעיל" : "מושהה"}
                       </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {u.id === profile.id ? (
+                        <span className="text-muted text-xs">— (אתה)</span>
+                      ) : (
+                        <DeleteUser userId={u.id} name={u.full_name} />
+                      )}
                     </td>
                   </tr>
                 ))}
