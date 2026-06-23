@@ -19,6 +19,12 @@ export async function POST(req: Request) {
   if (!profile.bank_id) {
     return NextResponse.json({ error: "לבנקאי אין שיוך לבנק" }, { status: 400 });
   }
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return NextResponse.json(
+      { error: "מפתח השרת (SUPABASE_SERVICE_ROLE_KEY) לא מוגדר בסביבה. הוסף אותו ב-Vercel ועשה Redeploy." },
+      { status: 500 }
+    );
+  }
 
   const body = (await req.json()) as Body;
   const { client_id, action } = body;
