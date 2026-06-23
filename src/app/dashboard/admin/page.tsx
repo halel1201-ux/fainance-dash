@@ -3,6 +3,7 @@ import Logo from "@/components/Logo";
 import LogoutButton from "@/components/LogoutButton";
 import AddUserForm from "@/components/AddUserForm";
 import AddBankForm from "@/components/AddBankForm";
+import AssignClient from "@/components/AssignClient";
 import { getProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -28,13 +29,19 @@ export default async function AdminPage() {
   if (profile.role !== "admin") redirect("/dashboard");
 
   const supabase = await createClient();
-  const [{ data: users }, { data: banks }] = await Promise.all([
+  const [{ data: users }, { data: banks }, { data: clients }] = await Promise.all([
     supabase.from("profiles").select("id, full_name, role, bank_id, is_active").order("created_at", { ascending: false }),
     supabase.from("banks").select("id, name, is_nonbank").order("name"),
+    supabase.from("clients").select("id, full_name, broker_id").order("created_at", { ascending: false }),
   ]);
 
   const userRows = (users ?? []) as ProfileRow[];
   const bankRows = (banks ?? []) as Bank[];
+  const clientRows = (clients ?? []) as { id: string; full_name: string; broker_id: string }[];
+  const advisors = userRows
+    .filter((u) => u.role === "broker")
+    .map((u) => ({ id: u.id, full_name: u.full_name }));
+  const advisorName = (id: string) => advisors.find((a) => a.id === id)?.full_name ?? "—";
   const bankName = (id: string | null) => bankRows.find((b) => b.id === id)?.name ?? "—";
 
   const counts = {
@@ -114,6 +121,43 @@ export default async function AdminPage() {
               ))}
             </div>
           </div>
+        </section>
+
+        {/* clients — transfer to advisor */}
+        <section>
+          <h2 className="font-bold mb-3">לקוחות — העברה לטיפול יועץ</h2>
+          {clientRows.length === 0 ? (
+            <div className="fh-card p-6 text-center text-muted text-sm">
+              אין עדיין לקוחות במערכת.
+            </div>
+          ) : advisors.length === 0 ? (
+            <div className="fh-card p-6 text-center text-muted text-sm">
+              הוסף יועץ (מתווך) כדי שתוכל להעביר אליו לקוחות.
+            </div>
+          ) : (
+            <div className="fh-card overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-gold text-xs uppercase tracking-wide">
+                    <Th>לקוח</Th>
+                    <Th>יועץ מטפל</Th>
+                    <Th>העבר לטיפול</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {clientRows.map((c) => (
+                    <tr key={c.id} className="border-b border-white/5">
+                      <td className="px-4 py-3 font-medium">{c.full_name}</td>
+                      <td className="px-4 py-3 text-muted">{advisorName(c.broker_id)}</td>
+                      <td className="px-4 py-3">
+                        <AssignClient clientId={c.id} current={c.broker_id} advisors={advisors} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
       </main>
     </div>

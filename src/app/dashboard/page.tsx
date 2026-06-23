@@ -26,6 +26,7 @@ export default async function DashboardPage() {
   const profile = await getProfile();
   if (!profile) redirect("/");
   if (profile.role === "admin") redirect("/dashboard/admin");
+  if (profile.role === "banker" || profile.role === "nonbank") redirect("/banker");
 
   const supabase = await createClient();
   // RLS scopes this automatically: broker→own, banker→their brokers', etc.
@@ -99,8 +100,12 @@ export default async function DashboardPage() {
               </thead>
               <tbody>
                 {withDti.map((r) => (
-                  <tr key={r.id} className="border-b border-white/5">
-                    <td className="px-4 py-3 font-medium">{r.full_name}</td>
+                  <tr key={r.id} className="border-b border-white/5 hover:bg-white/5">
+                    <td className="px-4 py-3 font-medium">
+                      <Link href={`/dashboard/clients/${r.id}`} className="text-gold-light hover:underline">
+                        {r.full_name}
+                      </Link>
+                    </td>
                     <td className="px-4 py-3">₪{r.net_income.toLocaleString("he-IL")}</td>
                     <td className="px-4 py-3">₪{r.monthly_repay.toLocaleString("he-IL")}</td>
                     <td className="px-4 py-3">{isFinite(r.ptiPct) ? `${r.ptiPct}%` : "—"}</td>

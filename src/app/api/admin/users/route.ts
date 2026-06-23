@@ -8,6 +8,7 @@ type Body = {
   password?: string;
   role?: "admin" | "broker" | "banker" | "nonbank";
   bank_id?: string | null;
+  branch_area?: string | null;
 };
 
 export async function POST(req: Request) {
@@ -52,6 +53,7 @@ export async function POST(req: Request) {
     full_name,
     role,
     bank_id,
+    branch_area: body.branch_area || null,
   });
   if (pErr) {
     // rollback to avoid an orphan auth user

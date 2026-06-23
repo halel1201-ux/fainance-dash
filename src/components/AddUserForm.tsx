@@ -24,6 +24,7 @@ export default function AddUserForm({ banks }: { banks: Bank[] }) {
     password: "",
     role: "broker",
     bank_id: "",
+    branch_area: "",
   });
 
   const needsBank = form.role === "banker" || form.role === "nonbank";
@@ -49,7 +50,7 @@ export default function AddUserForm({ banks }: { banks: Bank[] }) {
       return;
     }
     setOk(`המשתמש ${form.full_name} נוצר בהצלחה`);
-    setForm({ full_name: "", email: "", password: "", role: "broker", bank_id: "" });
+    setForm({ full_name: "", email: "", password: "", role: "broker", bank_id: "", branch_area: "" });
     router.refresh();
   }
 
@@ -91,15 +92,21 @@ export default function AddUserForm({ banks }: { banks: Bank[] }) {
           <input type="text" dir="ltr" className="fh-input" required value={form.password} onChange={(e) => set("password", e.target.value)} />
         </div>
         {needsBank && (
-          <div className="sm:col-span-2">
-            <label className="fh-label">שיוך לבנק *</label>
-            <select className="fh-input" required value={form.bank_id} onChange={(e) => set("bank_id", e.target.value)}>
-              <option value="">— בחר בנק —</option>
-              {banks.map((b) => (
-                <option key={b.id} value={b.id}>{b.name}</option>
-              ))}
-            </select>
-          </div>
+          <>
+            <div>
+              <label className="fh-label">שיוך לבנק *</label>
+              <select className="fh-input" required value={form.bank_id} onChange={(e) => set("bank_id", e.target.value)}>
+                <option value="">— בחר בנק —</option>
+                {banks.map((b) => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="fh-label">אזור / סניף *</label>
+              <input className="fh-input" required placeholder="למשל: באר שבע" value={form.branch_area} onChange={(e) => set("branch_area", e.target.value)} />
+            </div>
+          </>
         )}
       </div>
 
