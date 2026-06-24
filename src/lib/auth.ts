@@ -22,7 +22,7 @@ export async function getProfile(): Promise<Profile | null> {
     .from("profiles")
     .select("id, full_name, role, bank_id, is_active")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
   return (data as Profile) ?? null;
 }
